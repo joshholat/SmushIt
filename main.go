@@ -54,16 +54,31 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
     }
 
     var filesToArchive []string
+
+    // See https://medium.com/@dhanushgopinath/concurrent-http-downloads-using-go-32fecfa1ed27
+    length := len(apiRequestData.Urls)
+    done := make(chan string, length)
+    errChan := make(chan error, length)
     for _, url := range apiRequestData.Urls {
         fileUrl, _ := url.(string)
-        filename, err := DownloadFromUrl(string(fileUrl))
-        if err != nil {
-            fmt.Println("Error while downloading file", filename, "-", err)
-            continue
-        }
+        go func(url string) {
+            filename, err := DownloadFromUrl(string(url))
 
-        filesToArchive = append(filesToArchive, filename)
+            if err != nil {
+                fmt.Println("Error while downloading file", filename, "-", err)
+                errChan <- err
+                done <- ""
+                return
+            }
+
+            done <- filename
+            errChan <- nil
+        }(fileUrl)
     }
+    for i := 0; i < length; i++ {
+        filesToArchive = append(filesToArchive, <-done)
+    }
+
     log.Printf("Files to archive: %v", filesToArchive)
 
     archiveFile := "/tmp/download.zip"
@@ -151,13 +166,11 @@ func DownloadFromUrl(url string) (string, error) {
     }
     defer response.Body.Close()
 
-    // TODO: Add concurrency
-
     n, err := io.Copy(output, response.Body)
     if err != nil {
         return filename, err
     }
-    fmt.Println(n, "bytes downloaded.")
+    fmt.Println(n, "bytes downloaded")
 
     file, err := os.Open(filename)
     if err != nil {
