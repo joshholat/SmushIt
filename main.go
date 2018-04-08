@@ -223,6 +223,7 @@ func AddFileToS3(sess *session.Session, fileToUpload string, filename string) er
 
     // Config settings: this is where you choose the bucket, filename, content-type etc.
     // of the file you're uploading.
+    oneDayFromNow := time.Now().AddDate(0, 0, 1)
     _, err = s3.New(sess).PutObject(&s3.PutObjectInput{
         Bucket: aws.String(S3_BUCKET),
         Key: aws.String(filename),
@@ -231,6 +232,7 @@ func AddFileToS3(sess *session.Session, fileToUpload string, filename string) er
         ContentLength: aws.Int64(size),
         ContentType: aws.String(http.DetectContentType(buffer)),
         ContentDisposition: aws.String("attachment"),
+        Expires: aws.Time(oneDayFromNow), // The bucket policy handles this mainly
     })
     return err
 }
