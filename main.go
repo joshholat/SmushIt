@@ -6,6 +6,7 @@ import (
     "fmt"
     "io"
     "os"
+    "time"
 
     "crypto/md5"
     "encoding/hex"
@@ -76,12 +77,21 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
     }
 
     // Upload the file to S3
-    err = AddFileToS3(sess, archiveFile, apiRequestData.Filename)
+    filename := GetMD5Hash(apiKey) + "/" + apiRequestData.Filename
+    err = AddFileToS3(sess, archiveFile, filename)
     if err != nil {
         return CreateErrorResponse(err.Error())
     }
 
-    success := map[string]interface{}{"message": "Successfully uploaded " + apiRequestData.Filename}
+    downloadUrl, err := GetDownloadUrl(sess, filename)
+    if err != nil {
+        return CreateErrorResponse(err.Error())
+    }
+
+    success := map[string]interface{}{
+        "message": "Successfully uploaded " + apiRequestData.Filename,
+        "downloadUrl": downloadUrl,
+    }
     successResponse, _ := json.Marshal(success)
     return events.APIGatewayProxyResponse{
         Body: string(successResponse),
@@ -89,7 +99,7 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
     }, nil
 }
 
-func CreateErrorResponse(errorMessage string) (events.APIGatewayProxyResponse, error)  {
+func CreateErrorResponse(errorMessage string) (events.APIGatewayProxyResponse, error) {
     error := map[string]interface{}{"error": errorMessage}
     errorResponse, _ := json.Marshal(error)
     return events.APIGatewayProxyResponse{
@@ -102,6 +112,17 @@ func GetMD5Hash(text string) string {
     hasher := md5.New()
     hasher.Write([]byte(text))
     return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func GetDownloadUrl(sess *session.Session, filename string) (string, error) {
+    svc := s3.New(sess)
+
+    req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
+        Bucket: aws.String(S3_BUCKET),
+        Key: aws.String(filename),
+    })
+    urlStr, err := req.Presign(24 * time.Hour)
+    return urlStr, err
 }
 
 // DownloadFromUrl will download a file at a given URL
@@ -137,7 +158,7 @@ func DownloadFromUrl(url string) (string, error) {
 }
 
 // AddFileToS3 will upload a single file to S3
-func AddFileToS3(s *session.Session, fileToUpload string, filename string) error {
+func AddFileToS3(sess *session.Session, fileToUpload string, filename string) error {
     log.Printf("Uploading file %s as %s", fileToUpload, filename)
 
     // Open the file for use
@@ -155,7 +176,7 @@ func AddFileToS3(s *session.Session, fileToUpload string, filename string) error
 
     // Config settings: this is where you choose the bucket, filename, content-type etc.
     // of the file you're uploading.
-    _, err = s3.New(s).PutObject(&s3.PutObjectInput{
+    _, err = s3.New(sess).PutObject(&s3.PutObjectInput{
         Bucket: aws.String(S3_BUCKET),
         Key: aws.String(filename),
         ACL: aws.String("private"),
@@ -169,7 +190,6 @@ func AddFileToS3(s *session.Session, fileToUpload string, filename string) error
 
 // ZipFiles compresses one or many files into a single zip archive file
 func ZipFiles(filename string, files []string) error {
-
     newfile, err := os.Create(filename)
     if err != nil {
         return err
@@ -181,7 +201,6 @@ func ZipFiles(filename string, files []string) error {
 
     // Add files to zip
     for _, file := range files {
-
         zipfile, err := os.Open(file)
         if err != nil {
             return err
