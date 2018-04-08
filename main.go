@@ -77,7 +77,6 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
     if !strings.Contains(apiRequestData.Filename, ".zip") {
         apiRequestData.Filename += ".zip"
     }
-    return CreateErrorResponse(apiRequestData.Filename)
 
     // Upload the file to S3
     filename := GetMD5Hash(apiKey) + "/" + apiRequestData.Filename
