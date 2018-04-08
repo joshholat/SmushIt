@@ -227,6 +227,8 @@ func GetExtensionFromMimeType(mimeType string) string {
         "image/png": "png",
         "image/jpeg": "jpeg",
         "image/jpg": "jpg",
+        "image/gif": "gif",
+        "audio/mpeg": "mp3",
     }
 
     if val, ok := mimeTypes[mimeType]; ok {
