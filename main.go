@@ -15,6 +15,7 @@ import (
     "encoding/json"
     "net/http"
     "archive/zip"
+    "path/filepath"
 
     "github.com/aws/aws-lambda-go/events"
     "github.com/aws/aws-lambda-go/lambda"
@@ -130,6 +131,11 @@ func GetDownloadUrl(sess *session.Session, filename string) (string, error) {
 // DownloadFromUrl will download a file at a given URL
 func DownloadFromUrl(url string) (string, error) {
     filename := "/tmp/" + GetMD5Hash(url)
+    extension := filepath.Ext(url)
+    if len(extension) > 0 {
+        filename += extension // Use the given extension
+    }
+
     fmt.Println("Downloading", url, "to", filename)
 
     // TODO: Check file existence first with io.IsExist
@@ -147,14 +153,40 @@ func DownloadFromUrl(url string) (string, error) {
 
     // TODO: Add concurrency
 
-	n, err := io.Copy(output, response.Body)
-	if err != nil {
-		return filename, err
-	}
+    n, err := io.Copy(output, response.Body)
+    if err != nil {
+        return filename, err
+    }
+    fmt.Println(n, "bytes downloaded.")
 
-    // TODO: Check mime type for file extension
+    file, err := os.Open(filename)
+    if err != nil {
+        return filename, err
+    }
+    defer file.Close()
 
-	fmt.Println(n, "bytes downloaded.")
+    // Only the first 512 bytes are used to sniff the content type
+    buffer := make([]byte, 512)
+    _, err = file.Read(buffer)
+    if err != nil {
+        return filename, err
+    }
+    // Reset the read pointer if necessary
+    file.Seek(0, 0)
+
+    // Always returns a valid content-type and "application/octet-stream" if no others seemed to match.
+    contentType := http.DetectContentType(buffer)
+    if 0 == len(extension) {
+        extensionFromMimeType := GetExtensionFromMimeType(contentType)
+        if len(extensionFromMimeType) > 0 {
+            filenameWithExtension := filename + "." + extensionFromMimeType
+            err = os.Rename(filename, filenameWithExtension)
+            if err != nil {
+                return filename, err
+            }
+            filename = filenameWithExtension
+        }
+    }
 
     return filename, nil
 }
@@ -188,6 +220,20 @@ func AddFileToS3(sess *session.Session, fileToUpload string, filename string) er
         ContentDisposition: aws.String("attachment"),
     })
     return err
+}
+
+func GetExtensionFromMimeType(mimeType string) string {
+    mimeTypes := map[string]string{
+        "image/png": "png",
+        "image/jpeg": "jpeg",
+        "image/jpg": "jpg",
+    }
+
+    if val, ok := mimeTypes[mimeType]; ok {
+        return val
+    }
+
+    return ""
 }
 
 // ZipFiles compresses one or many files into a single zip archive file
