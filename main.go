@@ -7,6 +7,7 @@ import (
     "io"
     "os"
     "time"
+    "strings"
 
     "crypto/md5"
     "encoding/hex"
@@ -40,7 +41,6 @@ func main() {
 func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
     log.Printf("Request data: %v", request.Body)
 
-    // TODO: Use API key to namespace folders in S3
     apiKey := request.Headers["X-Api-Key"]
     log.Printf("API Key: %v", apiKey)
 
@@ -51,8 +51,6 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
     if len(apiRequestData.Urls) <= 0 {
         return CreateErrorResponse("No URLs were provided")
     }
-
-    // TODO: Add .zip to filename if it isn't there
 
     var filesToArchive []string
     for _, url := range apiRequestData.Urls {
@@ -75,6 +73,11 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
     if err != nil {
         return CreateErrorResponse(err.Error())
     }
+
+    if !strings.Contains(apiRequestData.Filename, ".zip") {
+        apiRequestData.Filename += ".zip"
+    }
+    return CreateErrorResponse(apiRequestData.Filename)
 
     // Upload the file to S3
     filename := GetMD5Hash(apiKey) + "/" + apiRequestData.Filename
