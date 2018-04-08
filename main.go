@@ -129,21 +129,21 @@ func GetDownloadUrl(sess *session.Session, filename string) (string, error) {
 
 // DownloadFromUrl will download a file at a given URL
 func DownloadFromUrl(url string) (string, error) {
-	filename := "/tmp/" + GetMD5Hash(url)
-	fmt.Println("Downloading", url, "to", filename)
+    filename := "/tmp/" + GetMD5Hash(url)
+    fmt.Println("Downloading", url, "to", filename)
 
-	// TODO: Check file existence first with io.IsExist
-	output, err := os.Create(filename)
-	if err != nil {
-		return filename, err
-	}
-	defer output.Close()
+    // TODO: Check file existence first with io.IsExist
+    output, err := os.Create(filename)
+    if err != nil {
+        return filename, err
+    }
+    defer output.Close()
 
-	response, err := http.Get(url)
-	if err != nil {
-		return filename, err
-	}
-	defer response.Body.Close()
+    response, err := http.Get(url)
+    if err != nil {
+        return filename, err
+    }
+    defer response.Body.Close()
 
     // TODO: Add concurrency
 
