@@ -10,7 +10,7 @@ Resources:
       CodeUri: .
       Description: ''
       MemorySize: 128
-      Timeout: 30
+      Timeout: 120
       Role: 'arn:aws:iam::751927975329:role/service-role/data-manipulation'
       Events:
         Api1:

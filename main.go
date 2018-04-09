@@ -167,7 +167,14 @@ func DownloadFromUrl(url string) (string, error) {
     }
     defer output.Close()
 
-    response, err := http.Get(url)
+    req, err := http.NewRequest("GET", url, nil)
+    if err != nil {
+        return filename, err
+    }
+    // Here so sites see us like a "normal" browser
+    req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0")
+    client := &http.Client{}
+    response, err := client.Do(req)
     if err != nil {
         return filename, err
     }
@@ -255,6 +262,7 @@ func GetExtensionFromMimeType(mimeType string) string {
         "image/jpg": "jpg",
         "image/gif": "gif",
         "audio/mpeg": "mp3",
+        "video/mp4": "mp4",
     }
 
     if val, ok := mimeTypes[mimeType]; ok {
