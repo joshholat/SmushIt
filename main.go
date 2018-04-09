@@ -8,6 +8,7 @@ import (
     "os"
     "time"
     "strings"
+    "errors"
 
     "crypto/md5"
     "encoding/hex"
@@ -76,10 +77,16 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
         }(fileUrl)
     }
     for i := 0; i < length; i++ {
-        filesToArchive = append(filesToArchive, <-done)
+        downloadedFile := <-done
+        if len(downloadedFile) > 0 {
+            filesToArchive = append(filesToArchive, downloadedFile)
+        }
     }
+    log.Printf("%d files to archive: %v", len(filesToArchive), filesToArchive)
 
-    log.Printf("Files to archive: %v", filesToArchive)
+    if 0 == len(filesToArchive) {
+        return CreateErrorResponse("No files were successfully downloaded")
+    }
 
     archiveFile := "/tmp/download.zip"
     ZipFiles(archiveFile, filesToArchive)
@@ -165,6 +172,10 @@ func DownloadFromUrl(url string) (string, error) {
         return filename, err
     }
     defer response.Body.Close()
+
+    if response.StatusCode != http.StatusOK {
+        return filename, errors.New("Invalid response (" + http.StatusText(response.StatusCode) + ")")
+    }
 
     n, err := io.Copy(output, response.Body)
     if err != nil {
