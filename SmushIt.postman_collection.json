@@ -1,0 +1,77 @@
+{
+	"info": {
+		"_postman_id": "9ee5f594-d54b-46f3-b7a4-2ac29241baab",
+		"name": "SmushIt",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "/archive Local",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "YOUR_API_KEY"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"filename\": \"randomImages\",\n\t\"urls\": [\n\t\t\"https://placeimg.com/640/480/any?1\",\n\t\t\"https://placeimg.com/640/480/any?2\",\n\t\t\"https://placeimg.com/640/480/any?3\"\n\t]\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:3000/archive",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "3000",
+					"path": [
+						"archive"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/archive Prod",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Api-Key",
+						"value": "YOUR_API_KEY"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"filename\": \"randomImages\",\n\t\"urls\": [\n\t\t\"https://placeimg.com/640/480/any?1\",\n\t\t\"https://placeimg.com/640/480/any?2\",\n\t\t\"https://placeimg.com/640/480/any?3\"\n\t]\n}"
+				},
+				"url": {
+					"raw": "https://your-api-gateway-url.com/v1/archive",
+					"protocol": "https",
+					"host": [
+						"your-api-gateway-url",
+						"com"
+					],
+					"path": [
+						"v1",
+						"archive"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
